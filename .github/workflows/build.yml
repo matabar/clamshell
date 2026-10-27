@@ -1,0 +1,50 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build universal app
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          swift --version
+          xcodebuild -version
+
+      - name: Build and package
+        run: make zip
+
+      - name: Verify bundle
+        run: |
+          codesign --verify --verbose build/Clamshell.app
+          lipo -info build/Clamshell.app/Contents/MacOS/Clamshell
+          plutil -lint build/Clamshell.app/Contents/Info.plist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Clamshell-app
+          path: build/Clamshell-*.zip
+          if-no-files-found: error
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            --title "Clamshell ${GITHUB_REF_NAME}" \
+            --generate-notes \
+            build/Clamshell-*.zip

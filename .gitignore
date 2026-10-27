@@ -1,0 +1,14 @@
+# SwiftPM
+.build/
+.swiftpm/
+Package.resolved
+
+# Build output
+build/
+*.app
+*.iconset
+*.icns
+*.zip
+
+# macOS
+.DS_Store
